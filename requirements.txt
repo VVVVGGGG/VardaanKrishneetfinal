@@ -1,5 +1,4 @@
 streamlit
 st-files-connection
 gcsfs
-gdrivefs
-PyDrive2
+gdrive-fsspec
