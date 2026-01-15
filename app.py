@@ -8,10 +8,12 @@ PASSWORD = "bigmansmallwomanhug"
 
 # Create the connection to Google Drive
 # This requires st-files-connection and gcsfs in requirements.txt
-conn = st.connection('gdrive', type=FilesConnection)
+# Change 'gdrive' to 'gcs'
+conn = st.connection('gcs', type=FilesConnection)
 
 # Replace this with your Google Drive Folder ID (the long string in the folder URL)
-GDRIVE_PATH = "gdrive://1YwtsUT_XKdLmX2rsYOn1ZGZXjKWSYU7b"
+# Change 'gdrive://' to 'gcs://'
+GDRIVE_PATH = "gcs://1YwtsUT_XKdLmX2rsYOn1ZGZXjKWSYU7b"
 
 st.set_page_config(page_title="V&K Private Diary", layout="centered")
 
@@ -99,3 +101,4 @@ else:
 
     with t1: display_feed("Vardaan", user)
     with t2: display_feed("Krishneet", user)
+
