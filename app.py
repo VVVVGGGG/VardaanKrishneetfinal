@@ -9,7 +9,14 @@ PASSWORD = "bigmansmallwomanhug"
 # We tell Streamlit to use the 'service_account' info from your Secrets
 # instead of trying to open a browser window.
 # Change your connection line to this:
-conn = st.connection('gcs', type=FilesConnection, token=st.secrets["connections"]["gcs"]["service_account"])
+# We convert the Secrets object to a regular dictionary so Streamlit can process it
+credentials_dict = dict(st.secrets["connections"]["gcs"]["service_account"])
+
+conn = st.connection(
+    'gcs', 
+    type=FilesConnection, 
+    token=credentials_dict
+)
 # IMPORTANT: Ensure this starts with gcs:// 
 # and use the Project ID or Bucket Name associated with your Google Cloud project.
 # If you are using a standard Google Drive folder ID, we use this format:
@@ -105,6 +112,7 @@ else:
 
     with t1: display_feed("Vardaan", user)
     with t2: display_feed("Krishneet", user)
+
 
 
 
