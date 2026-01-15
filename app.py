@@ -1,29 +1,25 @@
 import streamlit as st
-from st_files_connection import FilesConnection
 import gcsfs
 from google.oauth2 import service_account
 from datetime import datetime
 import os
 
-# --- 1. SETUP & CONFIG ---
-PASSWORD = "bigmansmallwomanhug" 
-
-# 1. Manually build the credentials object from Secrets
-# This bypasses the dictionary "guessing" that caused the refresh_token error
+# --- 1. SETUP & AUTHENTICATION ---
+# We use the direct GCSFS filesystem to avoid the 'refresh_token' error
 try:
+    # Build credentials from Streamlit Secrets
     info = dict(st.secrets["connections"]["gcs"]["service_account"])
     creds = service_account.Credentials.from_service_account_info(info)
     
-    # 2. Create the GCS Filesystem using the explicit credentials object
+    # Create the filesystem object directly
+    # This acts as our direct bridge to Google Drive/GCS
     fs = gcsfs.GCSFileSystem(project=info.get("project_id"), token=creds)
-    
-    # 3. Plug it into the connection
-    conn = st.connection('gcs', type=FilesConnection, _fs=fs)
 except Exception as e:
     st.error(f"Authentication Setup Error: {e}")
     st.stop()
 
-# Use your Google Drive Folder ID
+# Configuration
+PASSWORD = "bigmansmallwomanhug" 
 GDRIVE_PATH = "gcs://1YwtsUT_XKdLmX2rsYOn1ZGZXjKWSYU7b"
 
 st.set_page_config(page_title="V&K Private Diary", layout="centered")
@@ -35,7 +31,6 @@ st.markdown("""
         border: 2px dashed #ff4b4b;
         background-color: #fff1f1;
         border-radius: 20px;
-        text-align: center;
     }
     .seen-badge { color: #4BB543; font-weight: bold; background: #e8f5e9; padding: 2px 8px; border-radius: 10px; }
     .stButton>button { width: 100%; border-radius: 12px; }
@@ -68,9 +63,11 @@ else:
         
         with st.status("🚀 Sending video to the cloud...", expanded=True) as status:
             gdrive_target = f"{GDRIVE_PATH}/{user}/{file_name}"
-            # Use the filesystem (fs) directly for better reliability
+            
+            # Using 'fs' directly to write the file
             with fs.open(gdrive_target, "wb") as f:
                 f.write(uploaded_video.getbuffer())
+                
             status.update(label="✅ Saved to Cloud!", state="complete", expanded=False)
             st.balloons()
 
@@ -80,7 +77,13 @@ else:
     def display_feed(person_name, viewer_name):
         try:
             folder_path = f"{GDRIVE_PATH}/{person_name}"
-            # List files using the filesystem directly
+            
+            # Use 'fs' to list and check files
+            if not fs.exists(folder_path):
+                fs.makedirs(folder_path)
+                st.info(f"Folder created for {person_name}. No videos yet.")
+                return
+
             vids = fs.ls(folder_path)
             vids = [v for v in vids if v.endswith(('.mp4', '.mov', '.avi'))]
             vids = sorted(vids, reverse=True)
@@ -91,14 +94,18 @@ else:
 
             for v_path in vids:
                 v_name = v_path.split('/')[-1]
-                marker_file = f"{GDRIVE_PATH}/read_receipts/{v_name}.read"
+                # Ensure read_receipts folder exists
+                receipt_dir = f"{GDRIVE_PATH}/read_receipts"
+                if not fs.exists(receipt_dir): fs.makedirs(receipt_dir)
+                
+                marker_file = f"{receipt_dir}/{v_name}.read"
                 is_seen = fs.exists(marker_file)
                 
                 st.markdown(f"**📅 {v_name.split('_')[0]}**")
                 if is_seen:
                     st.markdown("<span class='seen-badge'>✓ Seen</span>", unsafe_allow_html=True)
 
-                # Stream video 
+                # Open and display video stream
                 with fs.open(v_path, 'rb') as vf:
                     st.video(vf.read())
 
@@ -113,4 +120,3 @@ else:
 
     with t1: display_feed("Vardaan", user)
     with t2: display_feed("Krishneet", user)
-
