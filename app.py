@@ -20,7 +20,7 @@ except Exception as e:
 
 # Configuration
 PASSWORD = "bigmansmallwomanhug" 
-GDRIVE_PATH = "gcs://1YwtsUT_XKdLmX2rsYOn1ZGZXjKWSYU7b"
+GDRIVE_PATH = "gdrive://1YwtsUT_XKdLmX2rsYOn1ZGZXjKWSYU7b"
 
 st.set_page_config(page_title="V&K Private Diary", layout="centered")
 
@@ -120,3 +120,4 @@ else:
 
     with t1: display_feed("Vardaan", user)
     with t2: display_feed("Krishneet", user)
+
