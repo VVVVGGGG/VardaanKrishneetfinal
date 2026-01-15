@@ -1,29 +1,22 @@
 import streamlit as st
 from st_files_connection import FilesConnection
-from datetime import datetime
-import os
+import gcsfs  # <--- Make sure this import is here
 
 # --- 1. SETUP & CONFIG ---
 PASSWORD = "bigmansmallwomanhug" 
 
-# We tell Streamlit to use the 'service_account' info from your Secrets
-# instead of trying to open a browser window.
-# Change your connection line to this:
-# We convert the Secrets object to a regular dictionary so Streamlit can process it
-credentials_dict = dict(st.secrets["connections"]["gcs"]["service_account"])
+# 1. Convert secrets to a standard dictionary
+# This ensures Streamlit doesn't try to "hash" the secret object
+creds = dict(st.secrets["connections"]["gcs"]["service_account"])
 
-conn = st.connection(
-    'gcs', 
-    type=FilesConnection, 
-    token=credentials_dict
-)
-# IMPORTANT: Ensure this starts with gcs:// 
-# and use the Project ID or Bucket Name associated with your Google Cloud project.
-# If you are using a standard Google Drive folder ID, we use this format:
-GDRIVE_PATH = "gcs://1YwtsUT_XKdLmX2rsYOn1ZGZXjKWSYU7b"
+# 2. Create the GCS Filesystem directly 
+# This is the "magic" step that stops the 'refresh_token' error
+fs = gcsfs.GCSFileSystem(token=creds)
 
-# Replace this with your Google Drive Folder ID (the long string in the folder URL)
-# Change 'gdrive://' to 'gcs://'
+# 3. Connect using the pre-built filesystem
+conn = st.connection('gcs', type=FilesConnection, fs=fs)
+
+# Replace this with your actual Google Drive Folder ID
 GDRIVE_PATH = "gcs://1YwtsUT_XKdLmX2rsYOn1ZGZXjKWSYU7b"
 
 st.set_page_config(page_title="V&K Private Diary", layout="centered")
@@ -112,6 +105,7 @@ else:
 
     with t1: display_feed("Vardaan", user)
     with t2: display_feed("Krishneet", user)
+
 
 
 
