@@ -42,7 +42,9 @@ else:
             
             file_metadata = {
                 'name': f"{datetime.now().strftime('%Y-%m-%d_%H-%M')}_{user}.mp4",
-                'parents': [FOLDER_ID]
+                'parents': [FOLDER_ID],
+                # This tells Google to use your storage quota
+                'copyRequiresWriterPermission': False 
             }
             
             # 2. Setup upload
@@ -79,5 +81,6 @@ else:
         for f in sorted(files, key=lambda x: x['name'], reverse=True):
             st.write(f"📅 {f['name']}")
             st.video(f['webViewLink'])
+
 
 
