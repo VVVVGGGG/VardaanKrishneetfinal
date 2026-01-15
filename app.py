@@ -6,10 +6,14 @@ import os
 # --- 1. SETUP & CONFIG ---
 PASSWORD = "bigmansmallwomanhug" 
 
-# Create the connection to Google Drive
-# This requires st-files-connection and gcsfs in requirements.txt
-# Change 'gdrive' to 'gcs'
+# We tell Streamlit to use the 'service_account' info from your Secrets
+# instead of trying to open a browser window.
 conn = st.connection('gcs', type=FilesConnection)
+
+# IMPORTANT: Ensure this starts with gcs:// 
+# and use the Project ID or Bucket Name associated with your Google Cloud project.
+# If you are using a standard Google Drive folder ID, we use this format:
+GDRIVE_PATH = "gcs://1YwtsUT_XKdLmX2rsYOn1ZGZXjKWSYU7b"
 
 # Replace this with your Google Drive Folder ID (the long string in the folder URL)
 # Change 'gdrive://' to 'gcs://'
@@ -101,4 +105,5 @@ else:
 
     with t1: display_feed("Vardaan", user)
     with t2: display_feed("Krishneet", user)
+
 
