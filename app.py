@@ -35,9 +35,9 @@ else:
     user = st.radio("Who is recording?", ["Vardaan", "Krishneet"], horizontal=True)
     uploaded_file = st.file_uploader("📸 UPLOAD VIDEO", type=["mp4", "mov"])
 
-  if uploaded_file is not None:
+    if uploaded_file is not None:
         with st.status("🚀 Uploading to Google Drive...") as status:
-            # We convert the file to bytes
+            # 1. Read file into bytes
             file_bytes = uploaded_file.read()
             
             file_metadata = {
@@ -45,10 +45,11 @@ else:
                 'parents': [FOLDER_ID]
             }
             
-            # Use a simpler upload method (non-resumable for smaller files/stability)
+            # 2. Setup upload
             media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype='video/mp4')
             
             try:
+                # 3. Execute upload
                 file = service.files().create(
                     body=file_metadata, 
                     media_body=media, 
@@ -59,18 +60,24 @@ else:
             except Exception as upload_error:
                 st.error(f"Upload failed: {upload_error}")
                 status.update(label="❌ Failed", state="error")
-    st.divider()
-    st.info("The feed is being synced. Refresh to see new videos!")
 
-    # Function to list files in the folder
+    st.divider()
+    st.info("Feed syncing... Refresh to see new videos!")
+
+    # Function to list files
     def list_files():
         results = service.files().list(
-            q=f"'{FOLDER_ID}' in parents", fields="files(id, name, webViewLink)").execute()
+            q=f"'{FOLDER_ID}' in parents", 
+            fields="files(id, name, webViewLink)"
+        ).execute()
         return results.get('files', [])
 
     files = list_files()
-    for f in sorted(files, key=lambda x: x['name'], reverse=True):
-        st.write(f"📅 {f['name']}")
-        st.video(f['webViewLink'])
+    if not files:
+        st.write("No videos found yet.")
+    else:
+        for f in sorted(files, key=lambda x: x['name'], reverse=True):
+            st.write(f"📅 {f['name']}")
+            st.video(f['webViewLink'])
 
 
