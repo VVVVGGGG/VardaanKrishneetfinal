@@ -1,22 +1,29 @@
 import streamlit as st
 from st_files_connection import FilesConnection
-import gcsfs  # <--- Make sure this import is here
+import gcsfs
+from google.oauth2 import service_account
+from datetime import datetime
+import os
 
 # --- 1. SETUP & CONFIG ---
 PASSWORD = "bigmansmallwomanhug" 
 
-# 1. Convert secrets to a standard dictionary
-# This ensures Streamlit doesn't try to "hash" the secret object
-creds = dict(st.secrets["connections"]["gcs"]["service_account"])
+# 1. Manually build the credentials object from Secrets
+# This bypasses the dictionary "guessing" that caused the refresh_token error
+try:
+    info = dict(st.secrets["connections"]["gcs"]["service_account"])
+    creds = service_account.Credentials.from_service_account_info(info)
+    
+    # 2. Create the GCS Filesystem using the explicit credentials object
+    fs = gcsfs.GCSFileSystem(project=info.get("project_id"), token=creds)
+    
+    # 3. Plug it into the connection
+    conn = st.connection('gcs', type=FilesConnection, fs=fs)
+except Exception as e:
+    st.error(f"Authentication Setup Error: {e}")
+    st.stop()
 
-# 2. Create the GCS Filesystem directly 
-# This is the "magic" step that stops the 'refresh_token' error
-fs = gcsfs.GCSFileSystem(token=creds)
-
-# 3. Connect using the pre-built filesystem
-conn = st.connection('gcs', type=FilesConnection, fs=fs)
-
-# Replace this with your actual Google Drive Folder ID
+# Use your Google Drive Folder ID
 GDRIVE_PATH = "gcs://1YwtsUT_XKdLmX2rsYOn1ZGZXjKWSYU7b"
 
 st.set_page_config(page_title="V&K Private Diary", layout="centered")
@@ -59,12 +66,12 @@ else:
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
         file_name = f"{timestamp}_{user}.mp4"
         
-        # Upload directly to Google Drive
-        with st.spinner("Uploading to Google Drive..."):
+        with st.status("🚀 Sending video to the cloud...", expanded=True) as status:
             gdrive_target = f"{GDRIVE_PATH}/{user}/{file_name}"
-            with conn.fs.open(gdrive_target, "wb") as f:
+            # Use the filesystem (fs) directly for better reliability
+            with fs.open(gdrive_target, "wb") as f:
                 f.write(uploaded_video.getbuffer())
-            st.success("✅ Saved to Cloud!")
+            status.update(label="✅ Saved to Cloud!", state="complete", expanded=False)
             st.balloons()
 
     st.divider()
@@ -72,8 +79,9 @@ else:
 
     def display_feed(person_name, viewer_name):
         try:
-            # List files from Google Drive folder
-            vids = conn.fs.ls(f"{GDRIVE_PATH}/{person_name}")
+            folder_path = f"{GDRIVE_PATH}/{person_name}"
+            # List files using the filesystem directly
+            vids = fs.ls(folder_path)
             vids = [v for v in vids if v.endswith(('.mp4', '.mov', '.avi'))]
             vids = sorted(vids, reverse=True)
             
@@ -84,29 +92,24 @@ else:
             for v_path in vids:
                 v_name = v_path.split('/')[-1]
                 marker_file = f"{GDRIVE_PATH}/read_receipts/{v_name}.read"
-                is_seen = conn.fs.exists(marker_file)
+                is_seen = fs.exists(marker_file)
                 
                 st.markdown(f"**📅 {v_name.split('_')[0]}**")
                 if is_seen:
                     st.markdown("<span class='seen-badge'>✓ Seen</span>", unsafe_allow_html=True)
 
-                # Stream video from Drive
-                with conn.fs.open(v_path, 'rb') as vf:
+                # Stream video 
+                with fs.open(v_path, 'rb') as vf:
                     st.video(vf.read())
 
                 if viewer_name != person_name and not is_seen:
                     if st.button(f"Mark Seen", key=f"seen_{v_name}"):
-                        with conn.fs.open(marker_file, "w") as f:
+                        with fs.open(marker_file, "w") as f:
                             f.write(f"Seen by {viewer_name}")
                         st.rerun()
                 st.write("---")
         except Exception as e:
-            st.error(f"Error connecting to Drive: {e}")
+            st.error(f"Feed Error: {e}")
 
     with t1: display_feed("Vardaan", user)
     with t2: display_feed("Krishneet", user)
-
-
-
-
-
