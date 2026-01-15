@@ -18,7 +18,7 @@ try:
     fs = gcsfs.GCSFileSystem(project=info.get("project_id"), token=creds)
     
     # 3. Plug it into the connection
-    conn = st.connection('gcs', type=FilesConnection, fs=fs)
+    conn = st.connection('gcs', type=FilesConnection, _fs=fs)
 except Exception as e:
     st.error(f"Authentication Setup Error: {e}")
     st.stop()
@@ -113,3 +113,4 @@ else:
 
     with t1: display_feed("Vardaan", user)
     with t2: display_feed("Krishneet", user)
+
